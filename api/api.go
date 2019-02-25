@@ -465,9 +465,14 @@ func getNewRepoInfoByName(repoName string) (repo *logdb.GetRepoOutput, err error
 }
 
 func doQuerySample(info *logCtlInfo) (log *map[string]interface{}, err error) {
-	arg := &CtlArg{}
+	arg := &CtlArg{
+		Start: time.Now().Add(-time.Duration(10) * time.Minute),
+		End:   time.Now().Add(-time.Duration(5) * time.Minute),
+	}
 	checkCtlArg(arg, info)
+
 	query := "*"
+	buildQueryStr(&query, currentInfo, arg)
 	logs, err := doQuery(&query, info, "", 2, false)
 
 	if err != nil {
