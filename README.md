@@ -24,6 +24,6 @@ qlogctl help
 
 ## 下载
 
- * [darwin 版本](http://devtools.qiniu.com/darwin/log/qlogctl_0.0.8)
+ * [darwin 版本](http://devtools.qiniu.com/qlogctl_darwin_amd64_0.0.8)
 
- * [linux 版本](http://devtools.qiniu.com/linux/log/qlogctl_0.0.8)
+ * [linux 版本](http://devtools.qiniu.com/qlogctl_linux_amd64_0.0.8)
