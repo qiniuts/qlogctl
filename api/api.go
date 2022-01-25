@@ -30,12 +30,11 @@ type CtlArg struct {
 	End       time.Time // 查询的结束时间
 	PreSize   int       // 每次查询多少条
 	Scroll    bool      // 是否使用 scroll 方式拉取数据
-	Debug     bool      // 是否打印调试信息。 true 表示打印
 	fields    []logdb.RepoSchemaEntry
 }
 
 func checkCtlArg(arg *CtlArg, info *logCtlInfo) (warn, err error) {
-	if len(currentInfo.RepoName) == 0 {
+	if len(info.RepoName) == 0 {
 		err = fmt.Errorf("\n 请先设置要查询的 REPO \n")
 		return
 	}
@@ -48,11 +47,13 @@ func checkCtlArg(arg *CtlArg, info *logCtlInfo) (warn, err error) {
 		arg.End = time.Now()
 	}
 	if arg.Start.IsZero() {
-		arg.Start = arg.End.Add(-time.Minute * time.Duration(currentInfo.Range))
+		arg.Start = arg.End.Add(-time.Minute * time.Duration(info.Range))
 	}
-	warn, err = checkInRetention(&arg.Start, &arg.End, strings.ToLower(currentInfo.Repo.Retention))
-	if err != nil {
-		return
+	if info.Repo != nil {
+		warn, err = checkInRetention(&arg.Start, &arg.End, strings.ToLower(info.Repo.Retention))
+		if err != nil {
+			return
+		}
 	}
 	if len(arg.Fields) == 0 {
 		arg.Fields = "*"
@@ -61,7 +62,7 @@ func checkCtlArg(arg *CtlArg, info *logCtlInfo) (warn, err error) {
 		arg.Sort = "desc"
 	}
 	if arg.PreSize < 1 {
-		arg.PreSize = 1000
+		arg.PreSize = 500
 	}
 	return
 }
@@ -69,7 +70,8 @@ func checkCtlArg(arg *CtlArg, info *logCtlInfo) (warn, err error) {
 // retention :eg: 7d, 30d
 func checkInRetention(start, end *time.Time, retention string) (warn, err error) {
 	//forever storage
-	if strings.TrimSpace(retention) == "-1" {
+	retention = strings.TrimSpace(retention)
+	if retention == "-1" || retention == "" {
 		return
 	}
 	day := 0
@@ -96,8 +98,7 @@ func checkInRetention(start, end *time.Time, retention string) (warn, err error)
 
 // Query by query and args
 func Query(query string, arg *CtlArg) (err error) {
-	setDebug(arg.Debug)
-	log.Debugf("query: %v\nargs: %+v\n", query, *arg)
+	log.Debugf("query 1: %v\nargs: %+v\n", query, *arg)
 	err = queryLogCtlInfo()
 	if err != nil {
 		log.Infoln(err)
@@ -111,10 +112,10 @@ func Query(query string, arg *CtlArg) (err error) {
 		log.Infoln(err)
 		return
 	}
-	log.Debugf("query: %v\nargs: %+v\n", query, *arg)
+	log.Debugf("query 2: %v\nargs: %+v\n", query, *arg)
 	sort := buildQueryStr(&query, currentInfo, arg)
 
-	log.Debugf("query: %v\nargs: %+v\n", query, *arg)
+	log.Debugf("query 3: %v\nargs: %+v\n", query, *arg)
 	err = execQuery(&query, arg, currentInfo, sort, arg.PreSize)
 	return
 }
@@ -139,9 +140,12 @@ func getDateFieldAndSort(repo *logdb.GetRepoOutput, dateField, order *string) (s
 	if len(*dateField) > 0 {
 		return *dateField, *dateField + ":" + *order
 	}
-	for _, e := range repo.Schema {
-		if e.ValueType == "date" {
-			return e.Key, e.Key + ":" + *order
+	fmt.Println(repo)
+	if repo != nil && repo.Schema != nil {
+		for _, e := range repo.Schema {
+			if e.ValueType == "date" {
+				return e.Key, e.Key + ":" + *order
+			}
 		}
 	}
 	return "", ""
@@ -277,7 +281,6 @@ func getField(fields []logdb.RepoSchemaEntry, key string) *logdb.RepoSchemaEntry
 
 //QueryReqid query logs by reqid
 func QueryReqid(reqid string, reqidField string, arg *CtlArg) (err error) {
-	setDebug(arg.Debug)
 	// 正确格式的 reqid
 	unixNano, err := parseReqid(reqid)
 	if err != nil {
@@ -517,16 +520,20 @@ func warpRed(s string) string {
 	return fmt.Sprintf("\033[0;31m%s\033[0m", s)
 }
 
-func Endpoint(endpoint string) {
+func StoreEndpoint(endpoint string) {
+	CurrentEndpoint(endpoint)
+	storeCtx(currentLogCtlCtx)
+}
+
+func CurrentEndpoint(endpoint string) {
 	queryLogCtlInfo()
 	ctllogdbConf := currentLogCtlCtx.Logdb
 	ctllogdbConf.Endpoint = endpoint
 	currentLogCtlCtx.Logdb = ctllogdbConf
-	storeCtx(currentLogCtlCtx)
 }
 
 // Account the ak,sk and give them a name
-func Account(ak string, sk string, name string) {
+func StoreAccount(ak string, sk string, name string) {
 	info := buildUserContent(ak, sk, name)
 	if info == currentInfo && info.Repo != nil {
 		showRepo(info)
@@ -542,6 +549,27 @@ func Account(ak string, sk string, name string) {
 	err := ListRepos(false)
 	if err == nil {
 		fmt.Println(warpRed("请设置 REPO ..."))
+	}
+}
+
+func CurrentAK(ak string) {
+	queryLogCtlInfo()
+	currentInfo.Ak = ak
+}
+
+func CurrentSK(sk string) {
+	queryLogCtlInfo()
+	currentInfo.Sk = sk
+}
+
+func CurrentRepo(repo string) {
+	queryLogCtlInfo()
+	currentInfo.RepoName = repo
+	if currentInfo.RepoName != "" && currentInfo.Repo == nil {
+		repo, err := getNewRepoInfoByName(currentInfo.RepoName)
+		if err == nil {
+			currentInfo.Repo = repo
+		}
 	}
 }
 

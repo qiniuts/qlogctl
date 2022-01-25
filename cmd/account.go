@@ -4,7 +4,7 @@ import (
 	"errors"
 
 	"github.com/qiniuts/qlogctl/api"
-	"gopkg.in/urfave/cli.v2"
+	"github.com/urfave/cli/v2"
 )
 
 var (
@@ -18,7 +18,7 @@ var (
 				Action: func(c *cli.Context) error {
 					if c.Args().Len() == 1 {
 						endpoint := c.Args().Get(0)
-						api.Endpoint(endpoint)
+						api.StoreEndpoint(endpoint)
 						return nil
 					}
 					return errors.New("参数错误： endpoint <endpoint> ")
@@ -33,7 +33,7 @@ var (
 		ArgsUsage: "<ak> <sk> <name>",
 		Action: func(c *cli.Context) error {
 			if c.Args().Len() == 3 {
-				api.Account(c.Args().Get(0), c.Args().Get(1), c.Args().Get(2))
+				api.StoreAccount(c.Args().Get(0), c.Args().Get(1), c.Args().Get(2))
 				return nil
 			}
 			return errors.New("参数错误： <ak> <sk> <name> ")

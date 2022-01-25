@@ -5,8 +5,6 @@ qlogctl工具是针对Pandora日志检索产品提供的命令行工具，可以
 ## 源码安装
 
 ```
-go get gopkg.in/urfave/cli.v2
-go get github.com/qiniu/pandora-go-sdk
 go build -o qlogctl
 ```
 

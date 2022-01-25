@@ -30,7 +30,7 @@ var logdbClient logdb.LogdbAPI
 
 const _tempFile = ".qn_logdb_ctl_profile"
 
-func setDebug(isDebug bool) {
+func SetDebug(isDebug bool) {
 	if isDebug {
 		log.Logger.SetLevel(log.DEBUG)
 	}
@@ -122,21 +122,28 @@ func queryLogCtlInfo() (err error) {
 			return fmt.Errorf("%v\n 内部错误或还没有设置过账号信息", err)
 		}
 		currentInfo, err = getCtlInfo(currentLogCtlCtx, currentLogCtlCtx.Current, "")
-		return err
+		if err != nil {
+			info := &logCtlInfo{}
+			info.Range = 5
+			currentInfo = info
+		}
+		return nil
 	}
 	return nil
 }
 
 func getCtlInfo(ctx *logCtlCtx, user string, repoName string) (*logCtlInfo, error) {
+	info := &logCtlInfo{}
+	info.Repo = &logdb.GetRepoOutput{}
+	info.Range = 5
+
 	if ctx.Data == nil {
-		return nil, fmt.Errorf("获取用户信息失败或无此用户: %s ，请确认是否设置了正确的账号", user)
+		return info, fmt.Errorf("获取用户信息失败或无此用户: %s ，请确认是否设置了正确的账号", user)
 	}
 	userData := (*ctx.Data)[user]
 	if userData == nil {
-		return nil, fmt.Errorf("获取用户信息失败或无此用户: %s ，请确认是否设置了正确的账号", user)
+		return info, fmt.Errorf("获取用户信息失败或无此用户: %s ，请确认是否设置了正确的账号", user)
 	}
-
-	info := &logCtlInfo{}
 
 	info.User = user
 	info.Ak, _ = Decrypt(userData.AK)
@@ -216,6 +223,10 @@ func buildClient() (err error) {
 		endpoint := ctllogdbConf.Endpoint
 		if len(endpoint) < 10 {
 			endpoint = "https://jjh-insight.qiniuapi.com"
+		}
+		if len(currentInfo.Ak) < 10 || len(currentInfo.Sk) < 10 {
+			err = fmt.Errorf("AK 或 SK 为空。请设置账号或指定 ak sk")
+			return
 		}
 		cfg := logdb.NewConfig().
 			WithAccessKeySecretKey(currentInfo.Ak, currentInfo.Sk).

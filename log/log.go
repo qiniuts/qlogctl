@@ -30,9 +30,9 @@ func New() *logger {
 		Level:        INFO,
 		ErrorOut:     os.Stderr,
 		WarnOut:      os.Stderr,
-		InfoOut:      os.Stdout,
-		DebugOut:     os.Stdout,
-		VerboseOut:   os.Stdout,
+		InfoOut:      os.Stderr,
+		DebugOut:     os.Stderr,
+		VerboseOut:   os.Stderr,
 		PrefixFormat: "",
 	}
 }

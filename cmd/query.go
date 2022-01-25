@@ -7,7 +7,7 @@ import (
 
 	"github.com/qiniuts/qlogctl/api"
 	"github.com/qiniuts/qlogctl/util"
-	cli "gopkg.in/urfave/cli.v2"
+	cli "github.com/urfave/cli/v2"
 )
 
 var (
@@ -53,7 +53,6 @@ var (
 				DateField: c.String("dateField"),
 				Split:     c.String("split"),
 				PreSize:   c.Int("preSize"),
-				Debug:     c.Bool("debug"),
 			}
 			err := api.QueryReqid(c.Args().Get(0), c.String("reqidField"), arg)
 			return err
@@ -103,8 +102,9 @@ var (
 				DefaultText: "无",
 			},
 			&cli.BoolFlag{
-				Name:  "scroll",
-				Usage: "标记为 scroll 方式拉取日志。用于获取大量数据",
+				Name:    "scroll",
+				Aliases: []string{"all"},
+				Usage:   "标记为 scroll 方式拉取日志。用于获取大量数据",
 			},
 		},
 		Action: func(c *cli.Context) (err error) {
@@ -147,7 +147,6 @@ var (
 				End:       endDate,
 				Split:     c.String("split"),
 				Scroll:    c.Bool("scroll"),
-				Debug:     c.Bool("debug"),
 			}
 
 			if c.Int("preSize") < 1 {

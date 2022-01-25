@@ -5,7 +5,7 @@ import (
 	"strconv"
 
 	"github.com/qiniuts/qlogctl/api"
-	"gopkg.in/urfave/cli.v2"
+	"github.com/urfave/cli/v2"
 )
 
 var (
