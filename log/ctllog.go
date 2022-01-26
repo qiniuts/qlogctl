@@ -1,63 +1,54 @@
 package log
 
-var Logger = New()
+var logger Logger
 
-func Verbose(msg ...interface{}) {
-	Logger.Verbose(msg...)
+func init() {
+	logger = New()
+	logger.SetCalldepth(3)
 }
 
-func Verboseln(msg ...interface{}) {
-	Logger.Verboseln(msg...)
+func SetLevel(level Level) {
+	logger.SetLevel(level)
 }
 
-func Verbosef(format string, msg ...interface{}) {
-	Logger.Verbosef(format, msg...)
-}
-
-func Debug(msg ...interface{}) {
-	Logger.Debug(msg...)
-}
-
-func Debugln(msg ...interface{}) {
-	Logger.Debugln(msg...)
+func GetLevel() Level {
+	return logger.GetLevel()
 }
 
 func Debugf(format string, msg ...interface{}) {
-	Logger.Debugf(format, msg...)
+	logger.Debugf(format, msg...)
 }
 
-func Info(msg ...interface{}) {
-	Logger.Info(msg...)
+func Debugln(msg ...interface{}) {
+	logger.Debugln(msg...)
 }
 
-func Infoln(msg ...interface{}) {
-	Logger.Infoln(msg...)
-}
-
-func Infof(format string, msg ...interface{}) {
-	Logger.Infof(format, msg...)
-}
-
-func Warn(msg ...interface{}) {
-	Logger.Warn(msg...)
-}
-
-func Warnln(msg ...interface{}) {
-	Logger.Warnln(msg...)
-}
-
-func Warnf(format string, msg ...interface{}) {
-	Logger.Warnf(format, msg...)
-}
-
-func Error(msg ...interface{}) {
-	Logger.Error(msg...)
-}
-
-func Errorln(msg ...interface{}) {
-	Logger.Errorln(msg...)
+func Debug(msg ...interface{}) {
+	logger.Debug(msg...)
 }
 
 func Errorf(format string, msg ...interface{}) {
-	Logger.Errorf(format, msg...)
+	logger.Errorf(format, msg...)
+}
+
+func Errorln(msg ...interface{}) {
+	logger.Errorln(msg...)
+}
+
+func Error(msg ...interface{}) {
+	if logger.gtlevel < ERROR {
+		logger.Error(msg...)
+	}
+}
+
+func Printf(format string, msg ...interface{}) {
+	logger.Printf(format, msg...)
+}
+
+func Println(msg ...interface{}) {
+	logger.Println(msg...)
+}
+
+func Prin(msg ...interface{}) {
+	logger.Print(msg...)
 }

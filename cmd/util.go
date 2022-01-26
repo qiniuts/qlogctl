@@ -29,3 +29,7 @@ func normalizeDate(str string) (t time.Time, err error) {
 	}
 	return t, fmt.Errorf(" %s : %s ", "时间格式不正确", str)
 }
+
+func a() {
+	normalizeDate("")
+}

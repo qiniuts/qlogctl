@@ -1,11 +1,11 @@
 package main
 
 import (
-	"fmt"
 	"os"
 
 	"github.com/qiniuts/qlogctl/api"
 	"github.com/qiniuts/qlogctl/cmd"
+	"github.com/qiniuts/qlogctl/log"
 	"github.com/urfave/cli/v2"
 )
 
@@ -64,7 +64,7 @@ func main() {
 
 	err := qlogctl.Run(os.Args)
 	if err != nil {
-		fmt.Println(err)
+		log.Errorln(err)
 		os.Exit(1)
 	}
 }

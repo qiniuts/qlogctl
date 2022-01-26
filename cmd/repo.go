@@ -1,7 +1,7 @@
 package cmd
 
 import (
-	"fmt"
+	"log"
 	"strconv"
 
 	"github.com/qiniuts/qlogctl/api"
@@ -69,7 +69,7 @@ var (
 			if err == nil && i > 0 {
 				api.SetTimeRange(i)
 			} else {
-				fmt.Println(" range must be an integer and greater than 0 ")
+				log.Println(" range must be an integer and greater than 0 ")
 			}
 			return nil
 		},
