@@ -20,8 +20,8 @@ const (
 	DateLayout = "2006-01-02T15:04:05-0700"
 )
 
-// CtlArg args
-type CtlArg struct {
+// CtlQueryArg args
+type CtlQueryArg struct {
 	Fields    string    // 显示展示哪些字段，* 表示全部字段。字段名以逗号 , 分割，忽略空格
 	Split     string    // 显示时，各字段的分割方式
 	DateField string    //时间范围所作用的字段，如 timestamp
@@ -33,9 +33,9 @@ type CtlArg struct {
 	fields    []logdb.RepoSchemaEntry
 }
 
-func checkCtlArg(arg *CtlArg, info *logCtlInfo) (warn, err error) {
+func checkCtlArg(arg *CtlQueryArg, info *logCtlInfo) (warn, err error) {
 	if len(info.RepoName) == 0 {
-		err = fmt.Errorf("\n 请先设置要查询的 REPO \n")
+		err = fmt.Errorf("请先设置要查询的 REPO")
 		return
 	}
 	if (arg.Start).After(arg.End) {
@@ -97,19 +97,19 @@ func checkInRetention(start, end *time.Time, retention string) (warn, err error)
 }
 
 // Query by query and args
-func Query(query string, arg *CtlArg) (err error) {
+func Query(query string, arg *CtlQueryArg) (err error) {
 	log.Debugf("query 1: %v\nargs: %+v\n", query, *arg)
 	err = queryLogCtlInfo()
 	if err != nil {
-		log.Infoln(err)
+		log.Debugln(err)
 		return
 	}
 	warn, err := checkCtlArg(arg, currentInfo)
 	if warn != nil {
-		log.Infoln(warn)
+		log.Debugln(warn)
 	}
 	if err != nil {
-		log.Infoln(err)
+		log.Debugln(err)
 		return
 	}
 	log.Debugf("query 2: %v\nargs: %+v\n", query, *arg)
@@ -120,7 +120,7 @@ func Query(query string, arg *CtlArg) (err error) {
 	return
 }
 
-func buildQueryStr(pquery *string, info *logCtlInfo, arg *CtlArg) (sort string) {
+func buildQueryStr(pquery *string, info *logCtlInfo, arg *CtlQueryArg) (sort string) {
 	dateField, sort := getDateFieldAndSort(info.Repo, &arg.DateField, &arg.Sort)
 	log.Debugln(dateField, sort)
 	if len(dateField) != 0 {
@@ -140,7 +140,7 @@ func getDateFieldAndSort(repo *logdb.GetRepoOutput, dateField, order *string) (s
 	if len(*dateField) > 0 {
 		return *dateField, *dateField + ":" + *order
 	}
-	fmt.Println(repo)
+	log.Debugln(repo)
 	if repo != nil && repo.Schema != nil {
 		for _, e := range repo.Schema {
 			if e.ValueType == "date" {
@@ -151,10 +151,10 @@ func getDateFieldAndSort(repo *logdb.GetRepoOutput, dateField, order *string) (s
 	return "", ""
 }
 
-func execQuery(query *string, arg *CtlArg, info *logCtlInfo, sort string, firstSize int) (err error) {
+func execQuery(query *string, arg *CtlQueryArg, info *logCtlInfo, sort string, firstSize int) (err error) {
 	logs, err := doQuery(query, info, sort, firstSize, arg.Scroll)
 	if err != nil {
-		log.Infoln(err)
+		log.Debugln(err)
 		return
 	}
 
@@ -173,7 +173,7 @@ func execQuery(query *string, arg *CtlArg, info *logCtlInfo, sort string, firstS
 		}
 		logs, err = logdbClient.QueryScroll(scrollInput)
 		if err != nil {
-			log.Infoln(err)
+			log.Debugln(err)
 			return
 		}
 		log.Debugf("scroll: %v, logstotal:%v, state:%v, size: %v, total: %v\n", logs.ScrollId, logs.Total, logs.PartialSuccess, size, total)
@@ -203,20 +203,20 @@ func doQuery(query *string, info *logCtlInfo, sort string, size int, srcoll bool
 
 	err = buildClient()
 	if err != nil {
-		log.Infoln(err)
+		log.Debugln(err)
 		return
 	}
 
 	return logdbClient.QueryLog(queryInput)
 }
 
-func showLogs(logs *logdb.QueryLogOutput, arg *CtlArg, info *logCtlInfo, from int) {
+func showLogs(logs *logdb.QueryLogOutput, arg *CtlQueryArg, info *logCtlInfo, from int) {
 	if arg.fields == nil || len(arg.fields) == 0 {
 		arg.fields = getShowFields(arg.Fields, info.Repo)
 	}
 
 	for i, v := range logs.Data {
-		fmt.Printf("%d\t%s\n", i+from, formatDbLog(&v, &arg.fields, arg.Split, false))
+		log.Printf("%d\t%s\n", i+from, formatDbLog(&v, &arg.fields, arg.Split, false))
 	}
 }
 
@@ -280,16 +280,16 @@ func getField(fields []logdb.RepoSchemaEntry, key string) *logdb.RepoSchemaEntry
 }
 
 //QueryReqid query logs by reqid
-func QueryReqid(reqid string, reqidField string, arg *CtlArg) (err error) {
+func QueryReqid(reqid string, reqidField string, arg *CtlQueryArg) (err error) {
 	// 正确格式的 reqid
 	unixNano, err := parseReqid(reqid)
 	if err != nil {
-		log.Infoln("reqid 格式不正确：", err)
+		log.Debugln("reqid 格式不正确：", err)
 		return
 	}
 	err = queryLogCtlInfo()
 	if err != nil {
-		log.Infoln(err)
+		log.Debugln(err)
 		return
 	}
 
@@ -299,7 +299,7 @@ func QueryReqid(reqid string, reqidField string, arg *CtlArg) (err error) {
 	}
 
 	if len(reqidField) == 0 {
-		log.Infoln("没有找到合适的字段用于查询 reqid，请使用 --reqidField <reqidField> 指定字段")
+		log.Debugln("没有找到合适的字段用于查询 reqid，请使用 --reqidField <reqidField> 指定字段")
 		return
 	}
 	query := reqidField + ":" + reqid
@@ -338,12 +338,12 @@ func parseReqid(reqid string) (unixNano int64, err error) {
 func SetRepo(repoName string, refresh bool) {
 	err := queryLogCtlInfo()
 	if err != nil {
-		log.Infoln(err)
+		log.Debugln(err)
 		return
 	}
 	if !refresh {
 		if len(repoName) == 0 && currentInfo.Repo == nil {
-			fmt.Println("Repo 为空，请指定 reponame")
+			log.Println("Repo 为空，请指定 reponame")
 			return
 		}
 		if len(repoName) == 0 || repoName == currentInfo.RepoName {
@@ -352,7 +352,7 @@ func SetRepo(repoName string, refresh bool) {
 		}
 		info, err := getCtlInfo(currentLogCtlCtx, currentInfo.User, repoName)
 		if err != nil {
-			log.Infoln(err)
+			log.Debugln(err)
 			return
 		}
 		if info != nil && info.Repo != nil {
@@ -364,7 +364,7 @@ func SetRepo(repoName string, refresh bool) {
 	if len(repoName) != 0 {
 		repo, err := getNewRepoInfoByName(repoName)
 		if err != nil {
-			log.Infoln(err)
+			log.Debugln(err)
 			return
 		}
 		currentInfo.RepoName = repoName
@@ -382,13 +382,13 @@ func SetRepo(repoName string, refresh bool) {
 func QuerySample(refresh bool) {
 	err := queryLogCtlInfo()
 	if err != nil {
-		fmt.Println(err)
+		log.Println(err)
 		return
 	}
 	if refresh || currentInfo.Log == nil {
 		sample, err := doQuerySample(currentInfo)
 		if err != nil {
-			log.Infoln(err)
+			log.Debugln(err)
 			return
 		}
 		currentInfo.Log = sample
@@ -397,7 +397,7 @@ func QuerySample(refresh bool) {
 	// 显示样例
 	if currentInfo.Log != nil {
 		fields := getShowFields("*", currentInfo.Repo)
-		fmt.Printf("%s\n", formatDbLog(currentInfo.Log, &fields, "\n", true))
+		log.Printf("%s\n", formatDbLog(currentInfo.Log, &fields, "\n", true))
 	}
 }
 
@@ -405,17 +405,17 @@ func QuerySample(refresh bool) {
 func ListRepos(verbose bool) (err error) {
 	err = queryLogCtlInfo()
 	if err != nil {
-		log.Infoln(err)
+		log.Debugln(err)
 		return
 	}
 	err = buildClient()
 	if err != nil {
-		log.Infoln(err)
+		log.Debugln(err)
 		return
 	}
 	repos, err := logdbClient.ListRepos(&logdb.ListReposInput{}) // 列举repo
 	if err != nil {
-		log.Infoln(err)
+		log.Debugln(err)
 		return
 	}
 
@@ -435,18 +435,18 @@ func ListRepos(verbose bool) (err error) {
 	for i, v := range repos.Repos {
 		if verbose {
 			if currentInfo.RepoName == v.RepoName {
-				fmt.Printf(warpRed("%3d:  %-"+sLen+"s\t%s\t%s\t%s\t%s **")+"\n",
+				log.Printf(warpRed("%3d:  %-"+sLen+"s\t%s\t%s\t%s\t%s **")+"\n",
 					i, v.RepoName, v.Region, v.Retention, v.CreateTime, v.UpdateTime)
 			} else {
-				fmt.Printf("%3d:  %-"+sLen+"s\t%s\t%s\t%s\t%s\n",
+				log.Printf("%3d:  %-"+sLen+"s\t%s\t%s\t%s\t%s\n",
 					i, v.RepoName, v.Region, v.Retention, v.CreateTime, v.UpdateTime)
 			}
 		} else {
 			if currentInfo.RepoName == v.RepoName {
-				fmt.Printf(warpRed("%3d:  %-"+sLen+"s\t%s\t%s **")+"\n",
+				log.Printf(warpRed("%3d:  %-"+sLen+"s\t%s\t%s **")+"\n",
 					i, v.RepoName, v.Region, v.Retention)
 			} else {
-				fmt.Printf("%3d:  %-"+sLen+"s\t%s\t%s\n",
+				log.Printf("%3d:  %-"+sLen+"s\t%s\t%s\n",
 					i, v.RepoName, v.Region, v.Retention)
 			}
 		}
@@ -468,7 +468,7 @@ func getNewRepoInfoByName(repoName string) (repo *logdb.GetRepoOutput, err error
 }
 
 func doQuerySample(info *logCtlInfo) (log *map[string]interface{}, err error) {
-	arg := &CtlArg{
+	arg := &CtlQueryArg{
 		Start: time.Now().Add(-time.Duration(10) * time.Minute),
 		End:   time.Now().Add(-time.Duration(5) * time.Minute),
 	}
@@ -489,30 +489,30 @@ func doQuerySample(info *logCtlInfo) (log *map[string]interface{}, err error) {
 
 func showRepo(info *logCtlInfo) {
 	repo := info.Repo
-	fmt.Printf("\n%11s: %s\n", "User", info.User)
+	log.Printf("\n%11s: %s\n", "User", info.User)
 	// 显示 Repo 信息
-	fmt.Printf("\n%11s: %s\n", "RepoName", info.RepoName)
-	fmt.Printf("%11s: %s\n", "Region", repo.Region)
-	fmt.Printf("%11s: %s\n", "Retention", repo.Retention)
+	log.Printf("\n%11s: %s\n", "RepoName", info.RepoName)
+	log.Printf("%11s: %s\n", "Region", repo.Region)
+	log.Printf("%11s: %s\n", "Retention", repo.Retention)
 	// 显示字段信息
-	fmt.Printf("\nField: (%d)\n", len(repo.Schema))
+	log.Printf("\nField: (%d)\n", len(repo.Schema))
 	var dateField string
 	for _, e := range repo.Schema {
 		if e.ValueType == "date" && len(dateField) == 0 {
 			dateField = e.Key
-			fmt.Printf(warpRed("%v\n"), e)
+			log.Printf(warpRed("%v\n"), e)
 		} else {
-			fmt.Println(e)
+			log.Println(e)
 		}
 	}
 	// 显示时间字段信息
-	fmt.Printf("%s，时间字段为： %s ，默认排序为： %s\n", warpRed(info.RepoName), warpRed(dateField), warpRed(dateField+":desc"))
+	log.Printf("%s，时间字段为： %s ，默认排序为： %s\n", warpRed(info.RepoName), warpRed(dateField), warpRed(dateField+":desc"))
 
 	// 显示样例
 	if info.Log != nil {
-		fmt.Println("\nSample: ")
+		log.Println("\nSample: ")
 		fields := getShowFields("*", repo)
-		fmt.Printf("%s\n", formatDbLog(info.Log, &fields, "\n", true))
+		log.Printf("%s\n", formatDbLog(info.Log, &fields, "\n", true))
 	}
 }
 
@@ -542,13 +542,13 @@ func StoreAccount(ak string, sk string, name string) {
 	if info != currentInfo {
 		err := setCurrentUser(info)
 		if err != nil {
-			fmt.Println("设置 账号信息失败，请重试 ...")
+			log.Println("设置 账号信息失败，请重试 ...")
 			return
 		}
 	}
 	err := ListRepos(false)
 	if err == nil {
-		fmt.Println(warpRed("请设置 REPO ..."))
+		log.Println(warpRed("请设置 REPO ..."))
 	}
 }
 
@@ -577,12 +577,12 @@ func CurrentRepo(repo string) {
 func Switch(user string) {
 	err := queryLogCtlInfo()
 	if err != nil {
-		log.Infoln(err)
+		log.Debugln(err)
 		return
 	}
 	info, err := getCtlInfo(currentLogCtlCtx, user, "")
 	if err != nil {
-		log.Infoln(err)
+		log.Debugln(err)
 		return
 	}
 	setCurrentUser(info)
@@ -590,7 +590,7 @@ func Switch(user string) {
 		showRepo(info)
 	} else {
 		ListRepos(false)
-		fmt.Println(warpRed("请设置 REPO ..."))
+		log.Println(warpRed("请设置 REPO ..."))
 	}
 }
 
@@ -616,7 +616,7 @@ func UserList() {
 	queryLogCtlInfo()
 	users := make([]string, 0)
 	if currentLogCtlCtx == nil || currentLogCtlCtx.Data == nil {
-		fmt.Println(" 未找到已设置的登录信息")
+		log.Println(" 未找到已设置的登录信息")
 		return
 	}
 	for user := range *currentLogCtlCtx.Data {
@@ -629,9 +629,9 @@ func UserList() {
 	sort.Strings(users)
 	for i, k := range users {
 		if currentUser == k && len(currentUser) > 0 {
-			fmt.Printf(warpRed("%v: %v %v\n"), i, k, "**")
+			log.Printf(warpRed("%v: %v %v\n"), i, k, "**")
 		} else {
-			fmt.Printf("%v: %v\n", i, k)
+			log.Printf("%v: %v\n", i, k)
 		}
 	}
 }

@@ -2,12 +2,15 @@ package log
 
 import (
 	"fmt"
-	"io"
+	stdLog "log"
 	"os"
 )
 
+type Level int
+
 const (
-	VERBOSE = iota
+	_             = iota
+	VERBOSE Level = iota
 	DEBUG
 	INFO
 	WARN
@@ -15,162 +18,96 @@ const (
 	NONE
 )
 
-type logger struct {
-	Level        int
-	ErrorOut     io.Writer
-	WarnOut      io.Writer
-	InfoOut      io.Writer
-	DebugOut     io.Writer
-	VerboseOut   io.Writer
-	PrefixFormat string
+type Logger struct {
+	calldepth int
+	gtlevel   Level
+	debug     *stdLog.Logger
+	err       *stdLog.Logger
+
+	normal *stdLog.Logger
 }
 
-func New() *logger {
-	return &logger{
-		Level:        INFO,
-		ErrorOut:     os.Stderr,
-		WarnOut:      os.Stderr,
-		InfoOut:      os.Stderr,
-		DebugOut:     os.Stderr,
-		VerboseOut:   os.Stderr,
-		PrefixFormat: "",
+func New() Logger {
+	debug := stdLog.New(os.Stderr,
+		"[DEBUG]",
+		stdLog.Ldate|stdLog.Ltime|stdLog.Lshortfile)
+
+	err := stdLog.New(os.Stderr,
+		"[ERROR]",
+		stdLog.Ldate|stdLog.Ltime|stdLog.Lshortfile)
+
+	normal := stdLog.New(os.Stderr, "", 0)
+
+	return Logger{
+		gtlevel:   ERROR - 1,
+		calldepth: 2,
+		debug:     debug,
+		err:       err,
+		normal:    normal}
+}
+
+func (l *Logger) SetLevel(level Level) {
+	l.gtlevel = level - 1
+}
+
+func (l *Logger) GetLevel() Level {
+	return l.gtlevel + 1
+}
+
+// SetCalldepth Calldepth is used to recover the PC and is
+// provided for generality
+func (l *Logger) SetCalldepth(calldepth int) {
+	l.calldepth = calldepth
+}
+
+func (l *Logger) GetCalldepth() int {
+	return l.calldepth
+}
+
+func (l *Logger) Debugf(format string, v ...interface{}) {
+	if l.gtlevel < DEBUG {
+		l.debug.Output(l.calldepth, fmt.Sprintf(format, v...))
 	}
 }
 
-func (l *logger) Verbose(msg ...interface{}) {
-	if l.Level > VERBOSE {
-		return
+func (l *Logger) Debugln(v ...interface{}) {
+	if l.gtlevel < DEBUG {
+		l.debug.Output(l.calldepth, fmt.Sprintln(v...))
 	}
-	fmt.Fprint(l.VerboseOut, msg...)
 }
 
-func (l *logger) Verboseln(msg ...interface{}) {
-	if l.Level > VERBOSE {
-		return
+func (l *Logger) Debug(v ...interface{}) {
+	if l.gtlevel < DEBUG {
+		l.debug.Output(l.calldepth, fmt.Sprint(v...))
 	}
-	fmt.Fprintln(l.VerboseOut, msg...)
 }
 
-func (l *logger) Verbosef(format string, msg ...interface{}) {
-	if l.Level > VERBOSE {
-		return
+func (l *Logger) Errorf(format string, v ...interface{}) {
+	if l.gtlevel >= ERROR {
+		l.debug.Output(l.calldepth, fmt.Sprintf(format, v...))
 	}
-	fmt.Fprintf(l.VerboseOut, format, msg...)
 }
 
-func (l *logger) Debug(msg ...interface{}) {
-	if l.Level > DEBUG {
-		return
+func (l *Logger) Errorln(v ...interface{}) {
+	if l.gtlevel >= ERROR {
+		l.debug.Output(l.calldepth, fmt.Sprintln(v...))
 	}
-	fmt.Fprint(l.DebugOut, msg...)
 }
 
-func (l *logger) Debugln(msg ...interface{}) {
-	if l.Level > DEBUG {
-		return
+func (l *Logger) Error(v ...interface{}) {
+	if l.gtlevel >= ERROR {
+		l.debug.Output(l.calldepth, fmt.Sprint(v...))
 	}
-	fmt.Fprintln(l.DebugOut, msg...)
 }
 
-func (l *logger) Debugf(format string, msg ...interface{}) {
-	if l.Level > DEBUG {
-		return
-	}
-	fmt.Fprintf(l.DebugOut, format, msg...)
+func (l *Logger) Printf(format string, v ...interface{}) {
+	l.normal.Output(l.calldepth, fmt.Sprintf(format, v...))
 }
 
-func (l *logger) Info(msg ...interface{}) {
-	if l.Level > INFO {
-		return
-	}
-	fmt.Fprint(l.InfoOut, msg...)
+func (l *Logger) Println(v ...interface{}) {
+	l.normal.Output(l.calldepth, fmt.Sprintln(v...))
 }
 
-func (l *logger) Infoln(msg ...interface{}) {
-	if l.Level > INFO {
-		return
-	}
-	fmt.Fprintln(l.InfoOut, msg...)
-}
-
-func (l *logger) Infof(format string, msg ...interface{}) {
-	if l.Level > INFO {
-		return
-	}
-	fmt.Fprintf(l.InfoOut, format, msg...)
-}
-
-func (l *logger) Warn(msg ...interface{}) {
-	if l.Level > WARN {
-		return
-	}
-	fmt.Fprint(l.WarnOut, msg...)
-}
-
-func (l *logger) Warnln(msg ...interface{}) {
-	if l.Level > WARN {
-		return
-	}
-	fmt.Fprintln(l.WarnOut, msg...)
-}
-
-func (l *logger) Warnf(format string, msg ...interface{}) {
-	if l.Level > WARN {
-		return
-	}
-	fmt.Fprintf(l.WarnOut, format, msg...)
-}
-
-func (l *logger) Error(msg ...interface{}) {
-	if l.Level > ERROR {
-		return
-	}
-	fmt.Fprint(l.ErrorOut, msg...)
-}
-
-func (l *logger) Errorln(msg ...interface{}) {
-	if l.Level > ERROR {
-		return
-	}
-	fmt.Fprintln(l.ErrorOut, msg...)
-}
-
-func (l *logger) Errorf(format string, msg ...interface{}) {
-	if l.Level > ERROR {
-		return
-	}
-	fmt.Fprintf(l.ErrorOut, format, msg...)
-}
-
-func (l *logger) SetLevel(level int) *logger {
-	if level > NONE || level < VERBOSE {
-		return l
-	}
-	l.Level = level
-	return l
-}
-
-func (l *logger) SetErrorOut(out io.Writer) *logger {
-	l.ErrorOut = out
-	return l
-}
-
-func (l *logger) SetInfoOut(out io.Writer) *logger {
-	l.InfoOut = out
-	return l
-}
-
-func (l *logger) SetDebugOut(out io.Writer) *logger {
-	l.DebugOut = out
-	return l
-}
-
-func (l *logger) SetVerboseOut(out io.Writer) *logger {
-	l.VerboseOut = out
-	return l
-}
-
-func (l *logger) SetPrefixFormat(format string) *logger {
-	l.PrefixFormat = format
-	return l
+func (l *Logger) Print(v ...interface{}) {
+	l.normal.Output(l.calldepth, fmt.Sprint(v...))
 }

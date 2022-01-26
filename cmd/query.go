@@ -1,13 +1,13 @@
 package cmd
 
 import (
-	"fmt"
+	"log"
 	"strings"
 	"time"
 
 	"github.com/qiniuts/qlogctl/api"
 	"github.com/qiniuts/qlogctl/util"
-	cli "github.com/urfave/cli/v2"
+	"github.com/urfave/cli/v2"
 )
 
 var (
@@ -47,7 +47,7 @@ var (
 			dateFieldFlag, orderFlag, showfieldsFlag, split,
 		},
 		Action: func(c *cli.Context) error {
-			arg := &api.CtlArg{
+			arg := &api.CtlQueryArg{
 				Fields:    c.String("showfields"),
 				Sort:      c.String("order"),
 				DateField: c.String("dateField"),
@@ -115,14 +115,14 @@ var (
 			if len(start) != 0 {
 				startDate, err = normalizeDate(start)
 				if err != nil {
-					fmt.Println(err)
+					log.Println(err)
 					return nil
 				}
 			}
 			if len(end) != 0 {
 				endDate, err = normalizeDate(end)
 				if err != nil {
-					fmt.Println(err)
+					log.Println(err)
 					return nil
 				}
 			}
@@ -139,7 +139,7 @@ var (
 				}
 			}
 
-			arg := &api.CtlArg{
+			arg := &api.CtlQueryArg{
 				Fields:    c.String("showfields"),
 				Sort:      c.String("order"),
 				DateField: c.String("dateField"),

@@ -8,7 +8,6 @@ import (
 	"runtime"
 	"time"
 
-	"github.com/qiniu/pandora-go-sdk/base"
 	"github.com/qiniu/pandora-go-sdk/logdb"
 	"github.com/qiniuts/qlogctl/log"
 )
@@ -32,7 +31,7 @@ const _tempFile = ".qn_logdb_ctl_profile"
 
 func SetDebug(isDebug bool) {
 	if isDebug {
-		log.Logger.SetLevel(log.DEBUG)
+		log.SetLevel(log.DEBUG)
 	}
 }
 
@@ -45,7 +44,7 @@ func Clear() {
 func SetTimeRange(r int) {
 	err := queryLogCtlInfo()
 	if err != nil {
-		log.Infoln(err)
+		log.Debugln(err)
 		return
 	}
 	currentInfo.Range = r
@@ -210,7 +209,7 @@ func storeCtx(ctx *logCtlCtx) (err error) {
 	if err == nil && bytes != nil {
 		err = ioutil.WriteFile(userHomeDir()+"/"+_tempFile, bytes, 0666)
 		if err != nil {
-			log.Infoln("Opps....", err)
+			log.Debugln("Opps....", err)
 		}
 	}
 	return
@@ -221,6 +220,8 @@ func buildClient() (err error) {
 		queryLogCtlInfo()
 		ctllogdbConf := currentLogCtlCtx.Logdb
 		endpoint := ctllogdbConf.Endpoint
+		log.Debugln(currentLogCtlCtx)
+		log.Debugln(ctllogdbConf)
 		if len(endpoint) < 10 {
 			endpoint = "https://jjh-insight.qiniuapi.com"
 		}
@@ -232,9 +233,10 @@ func buildClient() (err error) {
 			WithAccessKeySecretKey(currentInfo.Ak, currentInfo.Sk).
 			WithEndpoint(endpoint).
 			WithDialTimeout(30 * time.Second).
-			WithResponseTimeout(120 * time.Second).
-			WithLogger(base.NewDefaultLogger()).
-			WithLoggerLevel(base.LogDebug)
+			WithResponseTimeout(120 * time.Second)
+			// WithLogger(base.NewDefaultLogger()).
+			// WithLoggerLevel(base.LogDebug)
+		log.Debugln(cfg)
 		logdbClient, err = logdb.New(cfg)
 	}
 	return
